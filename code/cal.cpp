@@ -5,10 +5,29 @@ struct Number;
 Number one;
 Number Devide_Powers(string s);
 Number Formulas(string s);
+map<string, Number> vars;
 bool isDigit(char c)
 {
     if (c > '9' || c < '0') return 0;
     return 1;
+}
+int is_equation(string s)
+{
+    /*
+        if it has one "=", return the position(is an equation)
+        if it has 0 "=", return -1
+        if it has more than 1, return -10000(WRONG equation)
+    */
+    int equat = 0, pos = -1;
+    for (int i = s.length() - 1;i >= 0; i--) {
+        if (s[i] == '=') {
+            equat++;
+            pos = i;
+        }
+    }
+    if (equat > 1 || pos == 0) return -10000; // the first char can not be "=" 
+    else if (equat == 1) return pos;
+    else return -1;
 }
 /*
 Reduce_String(string s):
@@ -30,6 +49,8 @@ string Reduce_String(string s)
 }
 Number toNumber(string s)
 {
+    s = Reduce_String(s);
+    if (vars.find(s) != vars.end()) return vars[s];
     Number num;
     memset(num.fracPart, 0, sizeof(num.fracPart));
     memset(num.intPart, 0, sizeof(num.intPart));
@@ -186,7 +207,7 @@ Number Devide_Powers(string s)
 Number Formulas(string s)
 {
     s = Reduce_String(s);
-//    cout<<"\n<"<<s<<"> = ";printf("\n");
+    // cout<<"\n<"<<s<<"> = ";printf("\n");
     Number tmp1 = toNumber(s);
     Number ans;
     int pre = 0;
@@ -239,8 +260,21 @@ int main()
     while (true) {
         string formula;
         getline(cin, formula);
-        cout << "Solution: " << Formating(formula) << " = ";
-        PrintlnNumber(Formulas(formula));
+        int equat = is_equation(formula);
+        if (equat >= 0) {
+            cout << "Assigned Successfully!" << "\n";
+            // cout << Reduce_String(formula.substr(0, equat)) << " " << formula.substr(equat + 1, formula.length() - equat) << "$\n";
+            vars[Reduce_String(formula.substr(0, equat))] 
+            = Formulas(formula.substr(equat + 1, formula.length() - equat));
+        }
+        else if (equat == -1)
+        {
+            cout << "Solution: " << Formating(formula) << " = ";
+            PrintlnNumber(Formulas(formula));
+        }
+        else {
+            cout << "You are typing a wrong equation!" << '\n';
+        }
     }
 }
 /*
