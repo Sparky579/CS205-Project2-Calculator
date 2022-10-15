@@ -1,6 +1,8 @@
 #define debug1 printf("(debug)")
 #include"number.cpp"
-using namespace std;
+using std::map;
+using std::cin;
+using std::reverse;
 struct Number;
 Number one;
 Number Devide_Powers(string s);
@@ -30,6 +32,29 @@ int is_equation(string s)
     else return -1;
 }
 /*
+    to examine whether the formula is function(something) form
+    we can't check it only by brackets,
+    for example, sqrt(5)*sqrt(5) is not a single function, 
+    although there are brackets at both the front and the end of the formula,
+    but "5)*sqrt(5" is not a correct formula.
+    so we need to count the quantity of brackets.
+*/
+bool Is_Function(string s)
+{
+    int brackets = 0;
+    bool counting = 0;
+    if (s[s.length() - 1] != ')') return 0;
+    for (int i = 0; i < s.length() - 1; i++){
+        if (s[i] == '(') {
+            counting = 1;
+            brackets ++;
+        } 
+        if (s[i] == ')') brackets --;
+        if (counting && brackets < 1) return 0;
+    }
+    return 1;
+}
+/*
 Reduce_String(string s):
 to reduce the space at the beginning or the end of the string
 and the outer brackets
@@ -38,7 +63,8 @@ string Reduce_String(string s)
 {
     int len = s.length();
     if (len == 0) return s;
-    while (s[0] == ' ' || s[len - 1] == ' ' || (s[0] == '(' && s[len - 1] == ')')) {
+    bool isFunc = Is_Function(s);
+    while (s[0] == ' ' || s[len - 1] == ' ' || (s[0] == '(' && s[len - 1] == ')' && isFunc)) {
         if (s[0] == ' ') s = s.substr(1, len - 1);
         else if (s[len - 1] == ' ') s = s.substr(0, len - 1);
         else s = s.substr(1, len - 2);
@@ -47,6 +73,9 @@ string Reduce_String(string s)
     }
     return s;
 }
+/*
+    to convert a string to a struct Number
+*/
 Number toNumber(string s)
 {
     s = Reduce_String(s);
@@ -171,10 +200,17 @@ Number toNumber(string s)
 }
 Number Devide_Powers(string s)
 {
+    s = Reduce_String(s);
+    if (Is_Function(s) && s.substr(0, 4) == "sqrt" && s[s.length() - 1] == ')') 
+    {
+        s = s.substr(4, s.length() - 4);
+        return sqrtNumber(Devide_Powers(s));
+    }
     Number tmp = toNumber(s);
     if (tmp.errorCode == 0) return tmp;
     Number ans;
     int pre = 0;
+    bool haveSign = 0;//to throw an error if no sign
     one.intLen = one.intPart[0] = 1;
     one.errorCode = one.fracLen = 0;
     one.numSign = 1;
@@ -187,9 +223,12 @@ Number Devide_Powers(string s)
         if (s[i] == '(') brackets ++;
         if (s[i] == ')') brackets --;
         if (brackets == 0) {
+            if (i != 0 && (s[i] == '+' || s[i] == '-' || s[i] == '*' || s[i] == '/')) haveSign = 1;
             if (i == s.length() - 1 || s[i + 1] == '*' || s[i + 1] == '/') {
-            //    cout << pre << ' ' << i << ' ' << i - pre + 1 << '\n';
-            //    cout << pre << ' ' << i << ' ' << s.substr(pre, i - pre + 1) << '\n';
+                if (pre == 0 && i == s.length() - 1 && !haveSign) {
+                    ans.errorCode = 2;
+                    return ans;
+                }
                 Number tmp = Formulas(s.substr(pre, i - pre + 1));
                 if (tmp.errorCode > 0) return tmp; 
                 pre = i + 2;
@@ -206,10 +245,26 @@ Number Devide_Powers(string s)
 }
 Number Formulas(string s)
 {
-    s = Reduce_String(s);
-    // cout<<"\n<"<<s<<"> = ";printf("\n");
     Number tmp1 = toNumber(s);
     Number ans;
+    s = Reduce_String(s);
+    if (Is_Function(s) && s.substr(0, 5) == "sqrt(" && s[s.length() - 1] == ')') 
+    {
+        s = s.substr(5, s.length() - 6);
+        return sqrtNumber(Formulas(s));
+    }
+    if (s == "-" || s == "+" || s == "*" || s == "/") {
+        tmp1.errorCode = 2;return tmp1;
+    }
+    for (int i = 1; i < s.length(); i++) {
+        if (s[i] == '-' && s[i - 1] == '(' && s[i - 1] != 'e' && !isDigit(s[i - 1]))
+            s.insert(i, "0");
+        else if (s[i] == '-' && ! isDigit(s[i - 1]) && s[i - 1] != ')' && s[i - 1] != 'e'){
+            tmp1.errorCode = 2;
+            return tmp1;
+        }
+    }
+//    cout<<"\n<"<<s<<"> = ";printf("\n");
     int pre = 0;
     ans.intLen = ans.fracLen = 0;
     if (tmp1.errorCode == 0) return tmp1;
@@ -233,6 +288,7 @@ Number Formulas(string s)
                 pre = i + 2;
                 if (mode) ans = ans - tmp;
                 else ans = ans + tmp;//ERROR!!
+                if (ans.errorCode > 0) return ans;
             //    PrintlnNumber(ans);
             //    PrintlnNumber(tmp);
             //    printf("&&&&&&&&%d %d %d %d %d %d %d&&&&\n",tmp.numSign, ans.errorCode, ans.intLen, tmp.errorCode, tmp.intLen, tmp.fracLen, tmp.intPart[0]);
@@ -246,6 +302,9 @@ Number Formulas(string s)
 string Formating(string s)
 {
     string ans = "";
+    for (auto i = s.begin(); i != s.end(); i++){
+        if (*i == ' ') {s.erase(i); i--;}
+    }
     for (int i = 0; i < s.length(); i++) {
         if (s[i] == 0) continue;
         if (s[i] == '+' || s[i] == '-' || s[i] == '*' || s[i] == '/') {
@@ -255,7 +314,7 @@ string Formating(string s)
     }
     return ans;
 }
-int main()
+int main() 
 {
     while (true) {
         string formula;
@@ -269,8 +328,14 @@ int main()
         }
         else if (equat == -1)
         {
-            cout << "Solution: " << Formating(formula) << " = ";
-            PrintlnNumber(Formulas(formula));
+            Number ans = Formulas(formula);
+            if (ans.errorCode == 0) {
+                cout << "Solution: " << Formating(formula) << " = ";
+                PrintlnNumber(Formulas(formula));
+            }
+            else {
+                cout << "Error occurred! Please examine your typing" << '\n';
+            }
         }
         else {
             cout << "You are typing a wrong equation!" << '\n';
