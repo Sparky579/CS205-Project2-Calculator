@@ -3,13 +3,16 @@
 #include<string>
 #include<algorithm>
 #include<cstring>
+#include<map>
 const int maxLen = 1000;
 using std::max;
 using std::min;
 using std::cout;
+using std::string;
 struct Number;
 void PrintNumber(Number number);
 void PrintlnNumber(Number number);
+Number toNumber(string s);
 struct Number{
     int errorCode = 0;//0: no error 1: length error 2: type error
     // intPart: higher digit has higher index
@@ -117,8 +120,13 @@ struct Number{
     friend Number operator +(Number num1, Number num2){
         Number number;
         number.numSign = 1;
-        memset(number.intPart, 0, sizeof(number.intPart));
-        memset(number.fracPart, 0, sizeof(number.fracPart));
+        for (int i = 0; i <= max(num1.intLen, num2.intLen) + 1; i++)
+        number.intPart[i] = 0;
+        for (int i = 0; i <= max(num1.fracLen, num2.fracLen) + 1; i++)
+        number.fracPart[i] = 0;
+    //    memset(number.intPart, 0, sizeof(number.intPart));
+    //    memset(number.fracPart, 0, sizeof(number.fracPart));
+        //need memset?
         if (num1.errorCode >= 1 || num2.errorCode >= 1) {
             number.errorCode = max(num1.errorCode, num2.errorCode);
             return number;
@@ -155,7 +163,7 @@ struct Number{
             number.intPart[i] = 0;
             if (i < num1.intLen) number.intPart[i] += num1.intPart[i];
             if (i < num2.intLen) number.intPart[i] += num2.intPart[i];
-            if (number.numSign == -1) number.intPart[i] *= -1;
+            if (number.numSign == -1 && num1.numSign + num2.numSign != 2) number.intPart[i] *= -1;
         //    printf("(%d %d %d %d)\n", i, number.intPart[i], num1.intPart[i], num2.intPart[i]);
         }
         for (int i = 0; i < max(num1.fracLen, num2.fracLen); i++) {
@@ -196,6 +204,8 @@ struct Number{
         }
         while (number.intLen > 0 && number.intPart[number.intLen - 1] == 0)
             number.intLen --;
+        if (number.intLen == 0 && number.fracLen == 0) number.numSign = 1;   
+        if (number.intLen > maxLen - 1) number.errorCode = 1;
         return number;
     }
     friend Number operator -(Number num1, Number num2) {
@@ -223,6 +233,7 @@ struct Number{
         memset(now.intPart, 0, sizeof (now.intPart));
         memset(ans.fracPart, 0, sizeof (ans.fracPart));
         memset(ans.intPart, 0, sizeof (ans.intPart));
+        //need memset?
         now.fracLen = 0;
         now.intLen = max(num1.intLen - num2.intLen + 1, 1);
         now.intPart[now.intLen - 1] = 1;
@@ -234,20 +245,9 @@ struct Number{
         bool deal = 0;
         for (int i = 0; prec >= 0 ; i++) {
             while (now * num2 < num1) {
-            //    printf("NOW: %d %d\n",i, prec);
                 deal = 1;
-            //    PrintNumber(ans);printf("#%d %d\n",ans.fracLen, now.fracLen);
                 num1 = num1 - (now * num2);
-                ans = ans + now;//printf("NOW = ");
-            /*    PrintNumber(now);
-                printf("\n%d %d %d\nNOW * NUM2 = ",(now * num2).intLen, num1.intLen, num2.intPart[0]);
-                PrintNumber(now * num2);
-                printf("\n");
-                PrintNumber(num1);printf("\nANS = ");
-                PrintNumber(ans);
-                printf("\nNUM2 = ");
-                PrintNumber(num2);
-                printf("\n%d\n\n", i);*/
+                ans = ans + now;
             }
             prec -= deal;
             now = now * ten1;
@@ -260,7 +260,10 @@ struct Number{
 void PrintNumber(Number number)
 {
     if (number.numSign == -1) cout<< '-';
-    if (number.intLen == 0) cout << 0;
+    if (number.intLen == 0) {
+        cout << 0;
+        if (number.fracLen == 0) number.numSign = 1;
+    }
     for (int i = number.intLen - 1; i >= 0; i--) {
         cout << number.intPart[i];
     }
@@ -272,4 +275,40 @@ void PrintlnNumber(Number number)
 {
     PrintNumber(number);
     cout << '\n';
+}
+Number sqrtNumber(Number number)
+{
+    Number left = toNumber("0");
+    Number right;
+    Number half = toNumber("0.5");
+    Number one = toNumber("1");
+    Number eps;
+    if (number < left && !(number.intLen == 0 && number.fracLen == 0)) {
+        left.errorCode = 2;
+        return left;
+    }
+    right.intLen = number.intLen / 2 + 2;
+    right.numSign = eps.numSign = 1;
+    right.intPart[number.intLen / 2 + 1] = 1;
+    eps.fracLen = number.fracLen + 9;
+    eps.fracPart[number.fracLen + 8] = 1;
+    while (left < right) {
+        Number mid = (left + right) * half;
+        Number square = mid * mid;
+        Number prec = square - number;
+        int tmpSign = prec.numSign;
+        prec.numSign = 1;
+        if (prec < eps && tmpSign == 1) {
+            mid.fracLen = number.fracLen + 2;
+            return mid * one;
+        }
+        else if (square < number) left = mid;
+        else right = mid;
+    /*    printf("$");
+        PrintlnNumber(left);
+        PrintlnNumber(right);
+        PrintlnNumber(square);
+        PrintlnNumber(number);
+        printf("\n");*/
+    }
 }
