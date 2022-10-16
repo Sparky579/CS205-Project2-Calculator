@@ -357,6 +357,7 @@ int main()
     while (true) {
         string formula;
         getline(cin, formula);
+        if (formula.length() == 0) continue;
         if (formula == "quit") return 0;
         int equat = is_equation(formula);
         if (equat >= 0) {
