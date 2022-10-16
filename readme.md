@@ -4,6 +4,9 @@
 #### Sid: 12112104
 ___
 
+###项目简介：
+
+本项目实现了一个可以自动识别表达式并完成数学运算的计算器。该计算器支持复杂的带括号的加减乘除表达式运算。除此之外，还支持给变量赋值。程序能自动区分赋值语句和运算语句，并且在输出中体现出来。分别为："Assigned Successfully!" 和 "Solution:..." 。在运算语句中，输入的信息会被程序自动标准格式化。 最后，程序支持两个数学函数操作，分别为abs取绝对值，sqrt开根号。开根号使用二分法配合自己实现的乘法重载实现。
 
 ### Part 1: Analysis
 需求：实现一个可以完成更多功能的计算器。
@@ -77,7 +80,11 @@ Output1: sqrt(5) = 2.23
 Input2: sqrt(4)
 Output2: sqrt(4) = 2
 Input3: sqrt((2+3)*2)
-Output3: Solution: sqrt((2 + 3) * 2) = 3.16
+Output3: sqrt((2 + 3) * 2) = 3.16
+Input4: abs(-23.232323)
+Output4: abs( - 23.232323) = 23.232323
+Input5: sqrt(1e6)
+Output5: sqrt(1e6) = 1000
 
 ```
 **拓展功能3之高精度**
@@ -89,7 +96,31 @@ Input2: sqrt(1e100)
 Output2: sqrt(1e100) = 100000000000000000000000000000000000000000000000000
 
 ```
+**异常处理**
 
+```
+Input1: 1e888*1e888
+Output1: Error occurred! Please examine your typing
+//最多支持整数，小数各1000位运算
+Input2: 3+3=6
+Output2: This var name is illegel!
+Input3: x=aaa
+Output3: Can not assign this value!
+Input4: sqrt(-1)
+Output4: Error occurred! Please examine your typing
+//暂时不支持复数运算，故报出异常
+Input5: a=1=1
+Output5: You are typing a wrong equation!
+```
+
+**标准格式化**
+
+```
+Input1: 1     +      1
+Output1: 1 + 1 = 2
+Input2: sqrt  (  1  +   1  )
+Output2: sqrt(1 + 1) = 1.41
+```
 
 
 
