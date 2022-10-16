@@ -312,3 +312,9 @@ Number sqrtNumber(Number number)
         printf("\n");*/
     }
 }
+Number absNumber(Number number)
+{
+    Number tmp = number;
+    tmp.numSign = 1;
+    return tmp;
+}
