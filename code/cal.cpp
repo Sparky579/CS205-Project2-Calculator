@@ -31,6 +31,15 @@ int is_equation(string s)
     else if (equat == 1) return pos;
     else return -1;
 }
+bool Can_Be_Var(string s)
+{
+    if (isDigit(s[0])) return 0;
+    for (int i = 0; i < s.length(); i++){
+        if (s[i] == '+' || s[i] == '-' || s[i] == '*' || s[i] == '/') return 0;
+        if (s[i] == '=') return 0;
+    }
+    return 1;
+}
 /*
     to examine whether the formula is function(something) form
     we can't check it only by brackets,
@@ -39,12 +48,15 @@ int is_equation(string s)
     but "5)*sqrt(5" is not a correct formula.
     so we need to count the quantity of brackets.
 */
-bool Is_Function(string s)
+bool Is_Function(string s, bool strict)
 {
     int brackets = 0;
     bool counting = 0;
     if (s[s.length() - 1] != ')') return 0;
+    if (s[0] == '(' && strict) return 0;
     for (int i = 0; i < s.length() - 1; i++){
+        if (counting == 0 && (s[i] == '+' || s[i] == '-' || s[i] == '*' || s[i] == '/'))
+            return 0;
         if (s[i] == '(') {
             counting = 1;
             brackets ++;
@@ -55,15 +67,15 @@ bool Is_Function(string s)
     return 1;
 }
 /*
-Reduce_String(string s):
-to reduce the space at the beginning or the end of the string
-and the outer brackets
+    Reduce_String(string s):
+    to reduce the space at the beginning or the end of the string
+    and the outer brackets
 */
 string Reduce_String(string s)
 {
     int len = s.length();
     if (len == 0) return s;
-    bool isFunc = Is_Function(s);
+    bool isFunc = Is_Function(s, 0);
     while (s[0] == ' ' || s[len - 1] == ' ' || (s[0] == '(' && s[len - 1] == ')' && isFunc)) {
         if (s[0] == ' ') s = s.substr(1, len - 1);
         else if (s[len - 1] == ' ') s = s.substr(0, len - 1);
@@ -72,6 +84,20 @@ string Reduce_String(string s)
         if (len == 0) return s;
     }
     return s;
+}
+/*
+    To examine weather the brackets are correct
+*/
+bool Correct_Brackets(string s)
+{
+    int brackets = 0;
+    for (int i = 0; i < s.length(); i++){
+        if (s[i] == '(') brackets ++;
+        if (s[i] == ')') brackets --;
+        if (brackets < 0) return 0;
+        if (i > 0 && s[i - 1] == '(' && s[i] == ')') return 0;
+    }
+    return brackets == 0;
 }
 /*
     to convert a string to a struct Number
@@ -198,14 +224,23 @@ Number toNumber(string s)
     num.numSign = numSign;
     return num;
 }
+Number Function_Process(string s)
+{
+    if (s.substr(0, 4) == "sqrt" ) {
+        s = s.substr(4, s.length() - 4);
+        return sqrtNumber(Formulas(s));
+    }   
+    else if (s.substr(0, 3) == "abs") {
+        s = s.substr(3, s.length() - 3);
+        return absNumber(Formulas(s));
+    }
+    return toNumber("quit");
+}
 Number Devide_Powers(string s)
 {
     s = Reduce_String(s);
-    if (Is_Function(s) && s.substr(0, 4) == "sqrt" && s[s.length() - 1] == ')') 
-    {
-        s = s.substr(4, s.length() - 4);
-        return sqrtNumber(Devide_Powers(s));
-    }
+    if (Is_Function(s, 1) && s[s.length() - 1] == ')') 
+        return Function_Process(s);
     Number tmp = toNumber(s);
     if (tmp.errorCode == 0) return tmp;
     Number ans;
@@ -217,6 +252,12 @@ Number Devide_Powers(string s)
     ans = one;
     tmp.errorCode = 0;
     int brackets = 0; 
+    for (int i = 0; i < s.length(); i++) {
+        if (s[i] == '(') brackets ++;
+        if (s[i] == ')') brackets --;
+        if (brackets == 0 && (s[i] == '+' || s[i] == '-')) return Formulas(s);
+    }
+    brackets = 0;
     bool mode = 0; // 0 represents *, 1 represents /
     // record the number of brackets, only deal with the outer ones
     for (int i = 0; i < s.length(); i++) {
@@ -246,16 +287,13 @@ Number Devide_Powers(string s)
 Number Formulas(string s)
 {
     Number tmp1 = toNumber(s);
-    Number ans;
-    s = Reduce_String(s);
-    if (Is_Function(s) && s.substr(0, 5) == "sqrt(" && s[s.length() - 1] == ')') 
-    {
-        s = s.substr(5, s.length() - 6);
-        return sqrtNumber(Formulas(s));
-    }
-    if (s == "-" || s == "+" || s == "*" || s == "/") {
+    if (s == "-" || s == "+" || s == "*" || s == "/" || ! Correct_Brackets(s) || s == "()") {
         tmp1.errorCode = 2;return tmp1;
     }
+    Number ans;
+    s = Reduce_String(s);
+    if (Is_Function(s, 1)) 
+        return Function_Process(s);
     for (int i = 1; i < s.length(); i++) {
         if (s[i] == '-' && s[i - 1] == '(' && s[i - 1] != 'e' && !isDigit(s[i - 1]))
             s.insert(i, "0");
@@ -319,12 +357,21 @@ int main()
     while (true) {
         string formula;
         getline(cin, formula);
+        if (formula == "quit") return 0;
         int equat = is_equation(formula);
         if (equat >= 0) {
-            cout << "Assigned Successfully!" << "\n";
-            // cout << Reduce_String(formula.substr(0, equat)) << " " << formula.substr(equat + 1, formula.length() - equat) << "$\n";
-            vars[Reduce_String(formula.substr(0, equat))] 
-            = Formulas(formula.substr(equat + 1, formula.length() - equat));
+            Number num = Formulas(formula.substr(equat + 1, formula.length() - equat));
+            string varName = Reduce_String(formula.substr(0, equat));
+            if (!Can_Be_Var(varName) || varName == "quit") cout << "This var name is illegel!\n";
+            else if (num.errorCode != 0 || varName == "quit" || varName == "=" ) {
+                cout << "Can not assign this value!" << '\n';
+            } 
+            else {
+                cout << "Assigned Successfully!" << "\n";
+                // cout << Reduce_String(formula.substr(0, equat)) << " " << formula.substr(equat + 1, formula.length() - equat) << "$\n";
+                vars[Reduce_String(formula.substr(0, equat))] 
+                = Formulas(formula.substr(equat + 1, formula.length() - equat));
+            }
         }
         else if (equat == -1)
         {
