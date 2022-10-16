@@ -390,24 +390,3 @@ int main()
         }
     }
 }
-/*
-int main()
-{
-    string s1, s2;
-    cin >> s1;
-    cin >> s2;
-    Number num1, num2;
-    num1 = toNumber(s1);
-    num2 = toNumber(s2);
-    Number num = num1 / num2;
-    if (num.errorCode == 2) cout<<"The input cannot be interpret as numbers!"<<'\n';
-    else if (num.errorCode == 1) cout<<"The number is too large or too precise!\n";
-    else {
-        PrintNumber(num1);
-        cout << " + ";
-        PrintNumber(num2);
-        cout << " = ";
-        PrintNumber(num);
-    }
-    system("pause");
-}*/
