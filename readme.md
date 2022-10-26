@@ -1,7 +1,5 @@
 ## CS205 C/C++ Programming
 ### Project 2 A Better Calculator
-#### Name: 程司哲
-#### Sid: 12112104
 ___
 
 ### 项目简介：
